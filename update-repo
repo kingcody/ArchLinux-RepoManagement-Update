@@ -1,0 +1,161 @@
+#!/bin/bash
+
+###########################
+# Update Pacman Databases #
+###########################
+
+#global vars
+APP_NAME=`basename "$0"`
+ROOT_PATH="$(cd "$(dirname "$0")" && pwd)"
+REPO_PATH="${ROOT_PATH}/repos"
+UPDATE=''
+ADD_ANY=''
+
+# Color Vars
+bldblk='\e[1;30m' # Black - Bold
+bldred='\e[1;31m' # Red
+bldgrn='\e[1;32m' # Green
+bldylw='\e[1;33m' # Yellow
+bldblu='\e[1;34m' # Blue
+bldpur='\e[1;35m' # Purple
+bldcyn='\e[1;36m' # Cyan
+bldwht='\e[1;37m' # White
+bakblk='\e[40m'   # Black - Background
+bakred='\e[41m'   # Red
+bakgrn='\e[42m'   # Green
+bakylw='\e[43m'   # Yellow
+bakblu='\e[44m'   # Blue
+bakpur='\e[45m'   # Purple
+bakcyn='\e[46m'   # Cyan
+bakwht='\e[47m'   # White
+txtrst='\e[0m'    # Text Reset
+
+function help {
+	echo -e "${bldgrn}Arch Linux Repository Update Tool${txtrst}"
+	echo -e "${bldwht}Usage: ${bldylw}${APP_NAME} <repository>${txtrst}"
+	echo
+}
+
+
+if [ -z "$1" ]
+then
+	help
+	exit
+else
+	# Repository Name
+	REPO="$1"
+fi
+
+# ArchType Array
+ARCH_TYPE=('any' 'x86_64' 'i686' 'armv6h')
+
+# Config File
+config="${ROOT_PATH}/${APP_NAME}.conf"
+
+# Read Config File
+if [[ -f $config ]]; then
+		declare -A REPO_MIRROR
+		declare -A REPO_MIRROR_OPTIONS
+        . $config
+fi
+
+
+# Build the Repo DB's for the listed ARCH_TYPE(s)
+for ARCH in "${ARCH_TYPE[@]}"
+do
+	# check for packages of $ARCH type
+	if ls "${REPO_PATH}/${REPO}"/*-"${ARCH}".pkg.tar.xz &> /dev/null
+	then # add them to their respective repos
+		# check if we are adding $ARCH type any
+		if [[ $ARCH == 'any' ]]
+		then # flag for any pkgs to be added to existing repos
+			ADD_ANY=true
+			echo -e "${bldylw}===>${bldwht} Flagging 'any' architecture type packages for repo updating${txtrst}"
+		else # add the pkgs to their specific arch type repo
+			# create $ARCH dir if it doesn't exist
+			if [ ! -d "${REPO_PATH}/${REPO}/${ARCH}" ]
+			then
+				mkdir -p "${REPO_PATH}/${REPO}/${ARCH}"
+			fi
+			# message the user weather or not we are updating a repo $ARCH type or creating it new
+			if [ -e "${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz" ]
+			then
+				echo -e "${bldgrn}===> Updating ${bldylw}${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz...${txtrst}"
+			else
+				echo -e "${bldgrn}===> Creating new db${bldwht}: ${bldylw}${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz...${txtrst}"
+
+				if [[ -d "${REPO_PATH}/${REPO}/any" ]]; then
+					# see if we need to include 'any' type pkgs in the new $ARCH
+					pushd ${REPO_PATH}/${REPO}/any > /dev/null
+					EXSISTING_ANY_PKGS=(*-any.pkg.tar.xz)
+					popd > /dev/null
+
+					if [[ $(echo ${EXSISTING_ANY_PKGS[@]}) != '*-any.pkg.tar.xz' ]]; then
+						# init the repo with the any pkgs
+						echo -e "${bldgrn}===> Initializing ${bldylw}${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz${bldgrn} with 'any' architecture type packages...${txtrst}"
+						repo-add "${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz" "${REPO_PATH}/${REPO}/any"/*-any.pkg.tar.xz
+
+						# create symlinks to the any pkgs
+						echo -e "${bldgrn}===> Creating links to 'any' type packages in: ${bldylw}${REPO_PATH}/${REPO}/${ARCH}...${txtrst}"
+						ln -frs ${REPO_PATH}/${REPO}/any/*-any.pkg.tar.xz ${REPO_PATH}/${REPO}/${ARCH}/
+					fi
+				fi
+					
+
+			fi
+			UPDATE=true
+			repo-add "${REPO_PATH}/${REPO}/${ARCH}/${REPO}.db.tar.gz" "${REPO_PATH}/${REPO}"/*-"${ARCH}".pkg.tar.xz
+			mv "${REPO_PATH}/${REPO}"/*-"${ARCH}".pkg.tar.xz "${REPO_PATH}/${REPO}/${ARCH}/"
+		fi
+	else # skip and let the user know we are
+		echo -e "${bldylw}===> ${bldwht}No Packages for ${ARCH}, skipping...${txtrst}"
+	fi
+done
+
+
+# Add arch type any pkgs to all existing repos; it they exist and were flagged for adding
+if [[ $ADD_ANY ]]
+then # add any type pkgs
+	echo -e "${bldylw}===>${bldwht} Starting update process for architecture type 'any'...${txtrst}"
+	
+	# create any folder if doesn't exist
+	[[ ! -d "${REPO_PATH}/${REPO}/any" ]] && mkdir -p "${REPO_PATH}/${REPO}/any"
+
+	# get array of exisiting arch types
+	pushd ${REPO_PATH}/${REPO} > /dev/null
+	EXSISTING_ARCH=(*/)
+	# get array of new 'any' pkgs
+	NEW_ANY_PKGS=(*-any.pkg.tar.xz)
+	popd > /dev/null
+
+	# loop through all exsiting arch types
+	for ARCH in ${EXSISTING_ARCH[@]}; do
+		if [[ $ARCH != 'any/' ]]
+		then
+			UPDATE=true
+			# update the repo
+			echo -e "${bldgrn}===> Updating ${bldylw}${REPO_PATH}/${REPO}/${ARCH}${REPO}.db.tar.gz...${txtrst}"
+			repo-add "${REPO_PATH}/${REPO}/${ARCH}${REPO}.db.tar.gz" "${REPO_PATH}/${REPO}"/*-any.pkg.tar.xz
+
+			# create symlinks to the any pkgs
+			echo -e "${bldgrn}===> Creating links to 'any' type packages in: ${bldylw}${REPO_PATH}/${REPO}/${ARCH}...${txtrst}"
+			for PKG in ${NEW_ANY_PKGS[@]}; do
+				ln -frs ${REPO_PATH}/${REPO}/any/${PKG} ${REPO_PATH}/${REPO}/${ARCH}${PKG}
+			done
+		fi
+	done
+	# move all 'any' pkgs to the any folder
+	mv "${REPO_PATH}/${REPO}"/*-any.pkg.tar.xz "${REPO_PATH}/${REPO}/any/"
+fi
+
+
+# Update mirror if the conditions are met
+if [[ ${REPO_MIRROR["${REPO}"]+_} && $UPDATE ]]
+then
+	echo -e "${bldgrn}===> ${bldwht}Updating Mirror...${txtrst}"
+	scp ${REPO_MIRROR_OPTIONS["${REPO}"]} -r ${REPO_PATH}/${REPO}/* ${REPO_MIRROR["${REPO}"]}
+fi
+
+# Done
+echo ""
+echo -e "${bldwht}Done${txtrst}"

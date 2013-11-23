@@ -1,0 +1,8 @@
+# Editor and User backup files
+*.*~
+*.bak
+*.bac
+*.old
+
+# Editor state files
+*.sublime*
