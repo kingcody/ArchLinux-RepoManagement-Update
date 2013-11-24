@@ -97,7 +97,14 @@ do
 
 						# create symlinks to the any pkgs
 						echo -e "${bldgrn}===> Creating links to 'any' type packages in: ${bldylw}${REPO_PATH}/${REPO}/${ARCH}...${txtrst}"
-						ln -frs ${REPO_PATH}/${REPO}/any/*-any.pkg.tar.xz ${REPO_PATH}/${REPO}/${ARCH}/
+						## ln -frs ${REPO_PATH}/${REPO}/any/*-any.pkg.tar.xz ${REPO_PATH}/${REPO}/${ARCH}/ # old code
+						WD=$(pwd)
+						cd ${REPO_PATH}/${REPO}/${ARCH}/
+						for PKG in ${EXSISTING_ANY_PKGS[@]}; do
+							rm -f ./${PKG}
+							ln -s "../any/${PKG}" ./${PKG}
+						done
+						cd $WD
 					fi
 				fi
 					
@@ -139,9 +146,13 @@ then # add any type pkgs
 
 			# create symlinks to the any pkgs
 			echo -e "${bldgrn}===> Creating links to 'any' type packages in: ${bldylw}${REPO_PATH}/${REPO}/${ARCH}...${txtrst}"
+			WD=$(pwd)
+			cd ${REPO_PATH}/${REPO}/${ARCH}
 			for PKG in ${NEW_ANY_PKGS[@]}; do
-				ln -frs ${REPO_PATH}/${REPO}/any/${PKG} ${REPO_PATH}/${REPO}/${ARCH}${PKG}
+				rm -f ./${PKG}
+				ln -s "../any/${PKG}" ./${PKG}
 			done
+			cd $WD
 		fi
 	done
 	# move all 'any' pkgs to the any folder
