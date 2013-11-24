@@ -19,6 +19,7 @@ Installation
 ------------
 
 * Clone the repository into the folder of your choice.
+`git clone https://github.com/kingcody/ArchLinux-RepoManagement-Update.git`
 
 * Then, by default, you will need to create a subfolder called `repos` where your different repository folders will reside. This step can be modified to fit your needs by simply setting the `REPO_PATH` variable in the config file (update-repo.conf).
 
@@ -65,6 +66,6 @@ Notes
 This tool was created as part of a repository management suite, built for the Digitally Seamless Arch Linux enviroments. Please feel free to contribute to this project or fork it as your needs see fit.
 
 
-Disclaimer
-----------
+*Disclaimer*
+------------
 This project is in no way directly affiliated with Arch Linux or the creators of Arch Linux. We just love Arch Linux and wanted some more tools to help automate our development and deployment of Arch packages.
