@@ -9,6 +9,7 @@ Requirements
 
 * GNU + Linux (preferably Arch Linux)
 * Pacman (the Arch Linux package manager)
+* bash >= v4.0
 
 *Optional*
 * OpenSSH (for mirror syncing)
