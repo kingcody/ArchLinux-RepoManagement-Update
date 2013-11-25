@@ -11,8 +11,11 @@ Requirements
 * Pacman (the Arch Linux package manager)
 
 *Optional*
-
 * OpenSSH (for mirror syncing)
+
+*Testing*
+* tar (checking repo db's)
+* sed (general string parsing)
 
 
 Installation
