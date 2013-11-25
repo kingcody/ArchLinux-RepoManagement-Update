@@ -61,7 +61,7 @@ Testing
 
 If you are developing this tool, we have provided a test framework to check the tool's current status. To run the test, simply run the `test` script in the test folder. It will make a tmp folder called testRepo and will proceed to run `update-repo testRepo` on the newly created repo folder. After it is done you will have the option to run the tool's checks on the testRepo. Once the checks have completed you will be presented with a status report; if any errors were incurred, you will be notified as to what they were.
 
-Also, the test script takes one option. You may supress all promts and in turn automatically choose to proceed through the entire test with out pause, by passing the option: `[-a|-A|--auto|--AUTO]`
+Also, the test script takes one option. By passing the option: `[-a|-A|--auto|--AUTO]` you may supress all promts and in turn automatically choose to proceed through the entire test with out pause.
 
 example:
 `test/test --auto`
