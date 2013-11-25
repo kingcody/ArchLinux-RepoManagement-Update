@@ -6,3 +6,6 @@
 
 # Editor state files
 *.sublime*
+
+# Testing files
+test/repos/testRepo
