@@ -13,7 +13,7 @@ Requirements
 *Optional*
 * OpenSSH (for mirror syncing)
 
-*Testing*
+Testing
 * tar (checking repo db's)
 * sed (general string parsing)
 
