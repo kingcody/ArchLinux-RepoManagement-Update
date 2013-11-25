@@ -7,7 +7,7 @@ A pacman repository updating tool. Part of the Arch Linux Repo Management System
 Requirements
 ------------
 
-* Linux (preferably Arch Linux)
+* GNU + Linux (preferably Arch Linux)
 * Pacman (the Arch Linux package manager)
 
 *Optional*
