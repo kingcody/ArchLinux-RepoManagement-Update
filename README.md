@@ -29,6 +29,8 @@ Installation
 
 * Lastly, you will need to create a subfolder in your `repos` folder (or in the `REPO_PATH` if you specified one in the config) and make sure you name the folder with the same name you plan to use for your repository; this is how the update-repo script will know where to find your repository. You may repeat this step for as many repositories as you need to manage.
 
+* *View the example-layout folder for a better idea of the prescribed folder structure.*
+
 
 Usage
 -----
