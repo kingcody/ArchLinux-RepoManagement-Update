@@ -2,10 +2,24 @@
 
 TEST_PATH="$(cd "$(dirname "$0")" && pwd)"
 REPO_PATH="${TEST_PATH}/repos"
+AUTO=''
+
+for OPT in "$@"; do
+  if [[ "${OPT,,}" == "--auto" || "${OPT,,}" == "-a" ]]; then
+    AUTO=true
+  fi
+done
 
 function die ( ) {
    echo $@
    exit 1
+}
+
+function EXIT ( ) {
+  # Done
+  echo
+  echo -e "${bldwht}Done${txtrst}"
+  exit 0
 }
 
 # Color Vars
@@ -26,11 +40,13 @@ rm -rf ${REPO_PATH}/testRepo
 cp -r ${REPO_PATH}/TEST_TEMPLATE ${REPO_PATH}/testRepo
 
 echo -e "${bldwht}Done${txtrst}"
-echo
 
-echo -e "${bldwht}Would you like to run the update-repo tool on the testRepo?${txtrst}"
-read -p "Continue (Y/n)? "
-[ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
+if [[ ! "$AUTO" ]]; then
+  echo
+  echo -e "${bldwht}Would you like to run the update-repo tool on the testRepo?${txtrst}"
+  read -p "Continue (Y/n)? "
+  [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
+fi
 
 echo
 echo -e "${bldgrn}===>${bldwht} Running update-repo on testRepo...${txtrst}"
@@ -38,10 +54,12 @@ echo
 
 ${TEST_PATH}/update-repo testRepo
 
-echo
-echo -e "${bldwht}Would you like to check the results of update-repo testRepo?${txtrst}"
-read -p "Continue (Y/n)? "
-[ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
+if [[ ! "$AUTO" ]]; then
+  echo
+  echo -e "${bldwht}Would you like to check the results of update-repo testRepo?${txtrst}"
+  read -p "Continue (Y/n)? "
+  [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
+fi
 
 echo
 echo -e "${bldgrn}===>${bldwht} Running checks on testRepo...${txtrst}"
@@ -214,18 +232,13 @@ done
 
 print_log
 
-function EXIT ( ) {
-  # Done
-  echo
-  echo -e "${bldwht}Done${txtrst}"
-  exit 0
-}
-
 if [[ "$GOOD_TEST" ]]; then
-  echo -e "${bldwht}Would you like to remove the testRepo folder since all tests have passed?${txtrst}"
-  read -p "Continue (Y/n)? "
-  [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || EXIT
-  echo
+  if [[ ! "$AUTO" ]]; then
+    echo -e "${bldwht}Would you like to remove the testRepo folder since all tests have passed?${txtrst}"
+    read -p "Continue (Y/n)? "
+    [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || EXIT
+    echo
+  fi
   echo -e "${bldgrn}===>${bldwht} Removing testRepo...${txtrst}"
   rm -rf ${REPO_PATH}/testRepo
 fi
