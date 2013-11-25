@@ -33,7 +33,7 @@ read -p "Continue (Y/n)? "
 [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
 
 echo
-echo -e "${bldgrn}===>${bldwht} Running update-repo on testRepo....${txtrst}"
+echo -e "${bldgrn}===>${bldwht} Running update-repo on testRepo...${txtrst}"
 echo
 
 ${TEST_PATH}/update-repo testRepo
@@ -42,5 +42,192 @@ echo
 echo -e "${bldwht}Would you like to check the results of update-repo testRepo?${txtrst}"
 read -p "Continue (Y/n)? "
 [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || die "Exiting..."
+
 echo
-echo -e "${bldwht}Done${txtrst}"
+echo -e "${bldgrn}===>${bldwht} Running checks on testRepo...${txtrst}"
+
+ARCH_TYPE=('any' 'x86_64' 'i686' 'armv6h')
+declare -a TEST_LOG
+GOOD_TEST=''
+
+function log ( ) {
+  if [[ "$1" ]]; then
+    TEST_LOG=("${TEST_LOG[@]}" "$1")
+  fi
+}
+
+function log_unmoved_pkg ( ) {
+  PKG="$1"
+
+  log "${bldred}==> UNMOVED PACKAGE:${bldwht} pkg ${bldylw}$PKG${bldwht} still remains in ${bldylw}${REPO_PATH}/testRepo${txtrst}"
+}
+
+function log_missing_arch ( ) {
+  ARCH="$1"
+  FOLDER="${REPO_PATH}/testRepo"
+
+  log "${bldred}==> MISSING FOLDER:${bldwht} architecture folder ${bldylw}${ARCH}${bldwht} is missing from ${bldylw}$FOLDER${txtrst}"
+}
+
+function log_missing_pkg ( ) {
+  PKG="$1"
+  FOLDER="$2"
+
+  log "${bldred}==> MISSING PACKAGE:${bldwht} pkg ${bldylw}$PKG${bldwht} is missing from ${bldylw}$FOLDER${txtrst}"
+}
+
+function log_missing_db ( ) {
+  FOLDER="$1"
+
+  log "${bldred}==> MISSING DB:${bldwht} db ${bldylw}testRepo.db.tar.gz${bldwht} is missing from ${bldylw}$FOLDER${txtrst}"
+}
+
+function log_missing_link ( ) {
+  LINK="$1"
+  FOLDER="$2"
+
+  log "${bldred}==> MISSING LINK:${bldwht} link to ${bldylw}$LINK${bldwht} is missing from ${bldylw}$FOLDER${txtrst}"
+}
+
+function log_broken_link ( ) {
+  LINK="$1"
+  FOLDER="$2"
+
+  log "${bldred}==> BROKEN LINK:${bldwht} link ${bldylw}$LINK${bldwht} in ${bldylw}$FOLDER${bldwht} is broken or does not point to ${bldylw}../any/${LINK}${txtrst}"
+}
+
+function log_missing_db_entry ( ) {
+  PKG="$1"
+  ARCH="$2"
+
+  log "${bldred}==> DB ERROR:${bldwht} pkg ${bldylw}${PKG}${bldwht} is missing from or corrupt in db ${bldylw}${ARCH}/testRepo.db.tar.gz{txtrst}"
+}
+
+function print_log ( ) {
+  echo
+  if [[ ${#TEST_LOG[@]} == 0 ]]; then
+    GOOD_TEST=true
+    echo -e "${bldgrn}===>${bldwht} Test completed with no errors.${txtrst}"
+  else
+    echo -e "${bldred}===>${bldwht} Errors were incured, see log summary below:${txtrst}"
+    for LINE in "${TEST_LOG[@]}"; do
+       echo -e "$LINE"
+     done
+  fi
+  echo
+}
+
+function check_pkgs ( ) {
+  FOLDER="$1"
+  ARCH="$2"
+
+  for (( i = 1; i < 5; i++ )); do
+    PKG="${ARCH}pkg${i}-1.0-1-${ARCH}.pkg.tar.xz"
+    
+    if [[ ! -a "${FOLDER}/${PKG}" ]]; then
+      log_missing_pkg "$PKG" "$FOLDER"
+    fi
+  done
+}
+
+function check_links ( ) {
+  FOLDER="$1"
+
+  for (( i = 1; i < 5; i++ )); do
+    LINK="anypkg${i}-1.0-1-any.pkg.tar.xz"
+    
+    if [[ ! -a "${FOLDER}/${LINK}" ]]; then
+      log_missing_link "$LINK" "$FOLDER"
+    elif [[ $(readlink "${FOLDER}/${LINK}") != "../any/${LINK}" ]]; then
+      log_broken_link "$LINK" "$FOLDER"
+    fi
+  done
+}
+
+function check_db_cont ( ) {
+  DB_FILES="$1"
+  ARCH="$2"
+  declare -A PKGS=([anypkg1]=0 [anypkg2]=0 [anypkg3]=0 [anypkg4]=0
+    ["${ARCH}pkg1"]=0 ["${ARCH}pkg2"]=0 ["${ARCH}pkg3"]=0 ["${ARCH}pkg4"]=0)
+
+  for ENTRY in "${DB_FILES[@]}"; do
+    SHORT_ENTRY=$(echo "$ENTRY" | sed -e 's/-.*//g')
+      PKGS["$SHORT_ENTRY"]=$[${PKGS["$SHORT_ENTRY"]} + 1]
+  done
+
+  for PKG in "${!PKGS[@]}"; do
+    if [[ ${PKGS["$PKG"]} < 3 ]]; then
+      log_missing_db_entry "$PKG" "$ARCH"
+    fi
+  done
+}
+
+function check_db ( ) {
+  FOLDER="$1"
+  ARCH="$2"
+
+  if [[ ! -a "${FOLDER}/testRepo.db.tar.gz" ]]; then
+    log_missing_db "$FOLDER"
+  else
+    DB_FILES=($(tar -tf "${FOLDER}/testRepo.db.tar.gz"))
+    check_db_cont "$DB_FILES" "$ARCH"
+  fi
+}
+
+function check_any ( ) {
+  FOLDER="${REPO_PATH}/testRepo/any"
+
+  check_pkgs "$FOLDER" "any"
+}
+
+function check_arch ( ) {
+  ARCH="$1"
+  FOLDER="${REPO_PATH}/testRepo/$ARCH"
+
+  check_pkgs "$FOLDER" "$ARCH"
+  check_links "$FOLDER"
+  check_db "$FOLDER" "$ARCH"
+}
+
+# check testRepo root folder
+
+if ls "${REPO_PATH}"/testRepo/*.pkg.tar.xz &> /dev/null; then
+  ROOT_PKGS=($(ls "${REPO_PATH}"/testRepo/*.pkg.tar.xz))
+  for PKG in "${ROOT_PKGS[@]}"; do
+    log_unmoved_pkg "$PKG"
+  done
+fi
+
+# check architecture folders
+for ARCH in "${ARCH_TYPE[@]}"; do
+  echo -e "${bldgrn}===>${bldwht} Checking '$ARCH'...${txtrst}"
+  if [[ ! -d "${REPO_PATH}/testRepo/$ARCH" ]]; then
+    log_missing_arch "$ARCH"
+  else
+    if [ $ARCH == 'any' ]; then
+      check_any
+    else
+      check_arch "$ARCH"
+    fi
+  fi
+done
+
+print_log
+
+function EXIT ( ) {
+  # Done
+  echo
+  echo -e "${bldwht}Done${txtrst}"
+  exit 0
+}
+
+if [[ "$GOOD_TEST" ]]; then
+  echo -e "${bldwht}Would you like to remove the testRepo folder since all tests have passed?${txtrst}"
+  read -p "Continue (Y/n)? "
+  [ "${REPLY,,}" == y ] || [ "$REPLY" == '' ] || EXIT
+  echo
+  echo -e "${bldgrn}===>${bldwht} Removing testRepo...${txtrst}"
+  rm -rf ${REPO_PATH}/testRepo
+fi
+
+EXIT
